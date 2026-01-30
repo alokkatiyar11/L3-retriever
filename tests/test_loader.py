@@ -17,10 +17,13 @@ These tests validate that DocumentLoader.load_documents:
 """
 
 from __future__ import annotations
+
 from pathlib import Path
+
 import pytest
 
 from src.retrieval.loader import DocumentLoader
+
 
 @pytest.fixture
 def loader() -> DocumentLoader:
@@ -149,4 +152,3 @@ def test_raises_not_a_directory_error(tmp_path, loader):
     # Attempt to load documents using the file path
     with pytest.raises(NotADirectoryError):
         loader.load_documents(str(file_path))
-

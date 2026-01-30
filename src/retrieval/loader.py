@@ -18,10 +18,19 @@ class DocumentLoader:
     Returns:
         list[dict]: A list of dictionaries, each containing 'id', 'text', and 'metadata'.
 
+    Raises:
+        FileNotFoundError: If directory does not exist.
+        NotADirectoryError: If path exists but is not a directory.
     """
     def load_documents(self, directory: str) -> list[dict]:
         documents = []
         path = Path(directory)
+
+        if not path.exists():
+            raise FileNotFoundError(f"Directory not found: {directory}")
+        if not path.is_dir():
+            raise NotADirectoryError(f"Not a directory: {directory}")
+
         for filepath in path.glob("*.txt"):
             with open(filepath, 'r', encoding='utf-8') as f:
                 text = f.read().strip()

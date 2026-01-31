@@ -85,6 +85,6 @@ lab3
 Place .txt files in the `documents/` directory and restart the server. Documents are indexed automatic startup.
 
 # Screenshot
-![API_Web_Interface](5.png)
+![API_Web_Interface](image.png)
 
 # Video Links:

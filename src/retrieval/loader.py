@@ -6,10 +6,12 @@ Seattle University, ARIN 5360
 =190380
 @version: 0.1.0+w26
 """
+
 import logging
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
 
 class DocumentLoader:
     """
@@ -24,6 +26,7 @@ class DocumentLoader:
         FileNotFoundError: If directory does not exist.
         NotADirectoryError: If path exists but is not a directory.
     """
+
     def load_documents(self, directory: str) -> list[dict]:
         documents = []
         path = Path(directory)
@@ -34,12 +37,10 @@ class DocumentLoader:
             raise NotADirectoryError(f"Not a directory: {directory}")
 
         for filepath in path.glob("*.txt"):
-            with open(filepath, 'r', encoding='utf-8') as f:
+            with open(filepath, "r", encoding="utf-8") as f:
                 text = f.read().strip()
             if text:
-                documents.append({
-                    'id': filepath.stem,
-                    'text': text,
-                    'metadata': {'filename': filepath.name}
-                })
+                documents.append(
+                    {"id": filepath.stem, "text": text, "metadata": {"filename": filepath.name}}
+                )
         return documents

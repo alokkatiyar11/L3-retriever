@@ -6,8 +6,10 @@ Seattle University, ARIN 5360
 =190380
 @version: 0.1.0+w26
 """
+import logging
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
 
 class DocumentLoader:
     """

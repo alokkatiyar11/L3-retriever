@@ -11,11 +11,11 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 
 from src.retrieval.retriever import DocumentRetriever
 
@@ -158,18 +158,11 @@ async def test_error():
 # including / --> /static/index.html, and
 #           /stlye.css --> /static/style.csscan
 app.mount("/static", StaticFiles(directory="static"), name="static")
-import os
-import os
-
-print("===== STATIC DEBUG INFO =====")
-print("CWD:", os.getcwd())
-print("static/ exists?:", os.path.exists("static"))
-print("static/style.css exists?:", os.path.exists("static/style.css"))
-print("=============================")
 
 @app.get("/")
 async def ui():
     return FileResponse("static/index.html")
+
 
 if __name__ == "__main__":
     print("To run this application:")

@@ -19,6 +19,7 @@ Server starts at http://localhost:8000
 ### Via API
 
 **Check health:**
+
 ```bash
 curl http://localhost:8000/health
 ```
@@ -30,11 +31,13 @@ Visit http://localhost:8000 (requires `static/index.html`).
 ## Testing
 
 Run all Tests with coverage
+
 ```Bash
 uv run pytest
 ```
 
 Run any specific files
+
 ```bash
 uv run pytest .tests\test_store.py\
 ```
@@ -53,8 +56,8 @@ Check the formatting:
 Formatting the code:
 `uv run ruf format .`
 
-
 ## Project Structure
+
 ```
 lab3
 ├── documents
@@ -75,6 +78,7 @@ lab3
 ```
 
 # Architecture:
+
 - Loader: Reads .txt file from the documents/
 - Embedder: Converts text to vector using sentenc-transformers
 - Store: Manages chromadb collections for similarity search
@@ -82,9 +86,11 @@ lab3
 - API: FastAPI endpoints for heath checks and search
 
 # Adding Documents
+
 Place .txt files in the `documents/` directory and restart the server. Documents are indexed automatic startup.
 
 # Screenshot
+
 ![API_Web_Interface](image.png)
 
 # Video Links:

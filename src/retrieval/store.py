@@ -1,7 +1,7 @@
 """
 Vector store for semantic search using ChromaDB.
 
-@author: FIXME: your name here
+@author:  your name here
 Seattle University, ARIN 5360
 @see: https://catalog.seattleu.edu/preview_course_nopop.php?catoid=55&coid
 =190380
@@ -26,7 +26,7 @@ class EmbedderAdaptor(EmbeddingFunction):
         """Return True since we don't support build from config, etc."""
         return True
 
-    # FIXME: implement the callable interface by calling the adaptor's embedder
+    #  implement the callable interface by calling the adaptor's embedder
     def __call__(self, input) -> list[list[float]]:
         """
         Make embedder callable for ChromaDB compatibility and convert to a
@@ -47,7 +47,7 @@ class VectorStore:
             collection_name: Name for the ChromaDB collection
         """
         self.embedder = EmbedderAdaptor(embedder)
-        # FIXME: use ChromaDB client
+        #  use ChromaDB client
         self.client = chromadb.Client(Settings(anonymized_telemetry=False))
 
         # Delete any existing collection if present
@@ -71,12 +71,12 @@ class VectorStore:
         if not documents:
             return
 
-        # FIXME: pull out fields into separate lists like ChromaDB expects
+        #  pull out fields into separate lists like ChromaDB expects
         ids = [doc["id"] for doc in documents]
         texts = [doc["text"] for doc in documents]
         metadatas = [doc["metadata"] for doc in documents]
 
-        # FIXME: add them to ChromaDB's collection
+        #  add them to ChromaDB's collection
         self.collection.add(ids=ids, documents=texts, metadatas=metadatas)
 
     def search(self, query: str, n_results: int = 5) -> list[dict]:
@@ -90,11 +90,11 @@ class VectorStore:
         Returns:
             List of result dicts with 'id', 'text', 'distance', and 'metadata'
         """
-        # FIXME: use ChromaDB's query interface
+        #  use ChromaDB's query interface
         results = self.collection.query(query_texts=[query], n_results=n_results)
 
         formatted = []
-        # FIXME: Format results
+        #  Format results
         if len(results["ids"]) > 0:
             for i in range(len(results["ids"][0])):
                 formatted.append(
@@ -110,5 +110,5 @@ class VectorStore:
 
     def count(self) -> int:
         """Return the number of documents in the store."""
-        # FIXME: ask the collection for its size
+        #  ask the collection for its size
         return self.collection.count()

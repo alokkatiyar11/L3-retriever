@@ -1,7 +1,7 @@
 """
 Document retrieval system.
 
-@author:  Your name here
+@author:  Aarti Dashore, Alok Katiyar
 Seattle University, ARIN 5360
 @see: https://catalog.seattleu.edu/preview_course_nopop.php?catoid=55&coid
 =190380

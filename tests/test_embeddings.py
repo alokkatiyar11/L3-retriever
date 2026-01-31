@@ -1,7 +1,7 @@
 """
 Unit tests for embedder.
 
-@author: Arti Dashore, Alok Katiyar
+@author: Aarti Dashore, Alok Katiyar
 Seattle University, ARIN 5360
 @see: https://catalog.seattleu.edu/preview_course_nopop.php?catoid=55&coid
 =190380

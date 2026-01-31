@@ -141,6 +141,7 @@ def test_raises_for_nonexistent_directory(loader: DocumentLoader) -> None:
     with pytest.raises(FileNotFoundError):
         loader.load_documents("/this/path/should/not/exist")
 
+
 def test_raises_not_a_directory_error(tmp_path, loader):
     """
     Passing a file path instead of a directory should raise NotADirectoryError.

@@ -8,6 +8,8 @@ Seattle University, ARIN 5360
 @version: 1.0.0+w26
 """
 
+import chromadb
+from chromadb import Settings
 from chromadb.api.types import EmbeddingFunction
 
 
@@ -25,12 +27,12 @@ class EmbedderAdaptor(EmbeddingFunction):
         return True
 
     # FIXME: implement the callable interface by calling the adaptor's embedder
-    # def __call__(self, input) -> list[list[float]]:
-    #     """
-    #     Make embedder callable for ChromaDB compatibility and convert to a
-    #     list from the numpy array returned by our embedder.
-    #     """
-    #     return self.embedder.embed_documents(input).tolist()
+    def __call__(self, input) -> list[list[float]]:
+        """
+        Make embedder callable for ChromaDB compatibility and convert to a
+        list from the numpy array returned by our embedder.
+        """
+        return self.embedder.embed_documents(input).tolist()
 
 
 class VectorStore:
@@ -46,18 +48,18 @@ class VectorStore:
         """
         self.embedder = EmbedderAdaptor(embedder)
         # FIXME: use ChromaDB client
-        # self.client = chromadb.Client(Settings(anonymized_telemetry=False))
-        #
-        # # Delete any existing collection if present
-        # try:
-        #     self.client.delete_collection(collection_name)
-        # except Exception:
-        #     pass
-        #
-        # self.collection = self.client.create_collection(
-        #     name=collection_name,
-        #     embedding_function=self.embedder,  # Should use self.embedder
-        # )
+        self.client = chromadb.Client(Settings(anonymized_telemetry=False))
+
+        # Delete any existing collection if present
+        try:
+            self.client.delete_collection(collection_name)
+        except Exception:
+            pass
+
+        self.collection = self.client.create_collection(
+            name=collection_name,
+            embedding_function=self.embedder,  # Should use self.embedder
+        )
 
     def add_documents(self, documents):
         """
@@ -70,12 +72,12 @@ class VectorStore:
             return
 
         # FIXME: pull out fields into separate lists like ChromaDB expects
-        # ids = [doc["id"] for doc in documents]
-        # texts = [doc["text"] for doc in documents]
-        # metadatas = [doc["metadata"] for doc in documents]
+        ids = [doc["id"] for doc in documents]
+        texts = [doc["text"] for doc in documents]
+        metadatas = [doc["metadata"] for doc in documents]
 
         # FIXME: add them to ChromaDB's collection
-        # self.collection.add(ids=ids, documents=texts, metadatas=metadatas)
+        self.collection.add(ids=ids, documents=texts, metadatas=metadatas)
 
     def search(self, query: str, n_results: int = 5) -> list[dict]:
         """
@@ -89,24 +91,24 @@ class VectorStore:
             List of result dicts with 'id', 'text', 'distance', and 'metadata'
         """
         # FIXME: use ChromaDB's query interface
-        # results = self.collection.query(query_texts=[query], n_results=n_results)
+        results = self.collection.query(query_texts=[query], n_results=n_results)
 
         formatted = []
         # FIXME: Format results
-        # if len(results["ids"]) > 0:
-        #     for i in range(len(results["ids"][0])):
-        #         formatted.append(
-        #             {
-        #                 "id": results["ids"][0][i],
-        #                 "text": results["documents"][0][i],
-        #                 "distance": results["distances"][0][i],
-        #                 "metadata": results["metadatas"][0][i],
-        #             }
-        #         )
+        if len(results["ids"]) > 0:
+            for i in range(len(results["ids"][0])):
+                formatted.append(
+                    {
+                        "id": results["ids"][0][i],
+                        "text": results["documents"][0][i],
+                        "distance": results["distances"][0][i],
+                        "metadata": results["metadatas"][0][i],
+                    }
+                )
 
         return formatted
 
     def count(self) -> int:
         """Return the number of documents in the store."""
         # FIXME: ask the collection for its size
-        # return self.collection.count()
+        return self.collection.count()

@@ -1,119 +1,485 @@
 <!DOCTYPE html>
 <html lang="en">
 <!--
-@author: Arti Dashore, Alok Katiyar
+@author: Aarti Dashore, Alok Katiyar
 Seattle University, ARIN 5360
-@see: https://catalog.seattleu.edu/preview_course_nopop.php?catoid=55&coid=190380
-@version: 0.1.0+w26
+@version: 1.0.0+w26
 -->
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Title</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document Retrieval System — ARIN 5360</title>
+
+  <!-- FastAPI serves CSS at /static/style.css -->
+  <link rel="stylesheet" href="/static/style.css?v=1" />
 </head>
+
 <body>
-<div class="container">
-    <h1>Lab2: Document Retrieval System</h1>
-    <p style="text-align: center; color: #666;">
-        Semantic search using ChromaDB and sentence transformers
-    </p>
+  <!-- background orbs -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
 
-    <!-- Search section -->
-    <div class="search-section">
-        <input type="text" id="queryInput" placeholder="Enter your search query..."/>
-        <button id="searchButton" onclick="performSearch()">Search</button>
-    </div>
+  <div class="page">
+    <!-- Header -->
+    <header class="topbar">
+      <div class="title-block">
+        <div class="app-icon" aria-hidden="true"></div>
+        <div>
+          <div class="app-title">Document Retrieval System</div>
+          <div class="app-subtitle">
+            Semantic search using ChromaDB + sentence transformers
+          </div>
+        </div>
+      </div>
 
-    <!-- Results section -->
-    <div id="results"></div>
+      <div class="meta-block">
+        <div class="meta-line">ARIN 5360 • Seattle University</div>
+        <div class="meta-line">Authors: Aarti Dashore, Alok Katiyar</div>
 
-    <!-- Health section -->
-    <div class="health-section">
-        <!-- Display server health status -->
-        <button id="healthButton" onclick="displayHealth()">How am I feeling?</button>
-        <div id="health-status">Not sure right now</div>
-    </div>
-</div>
+        <div class="status-row">
+          <span class="status-pill unknown" id="statusPill">
+            <span class="status-dot unknown" id="statusDot"></span>
+            <span id="statusText">Checking…</span>
+          </span>
+          <span class="docs-pill" id="docsPill">Docs: —</span>
+        </div>
 
-<script>
+        <div class="meta-line faint">API: <span id="apiBase">—</span></div>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="grid">
+      <!-- Left: Search -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Search</div>
+            <div class="card-right-hint">Ask a question or type keywords</div>
+          </div>
+        </div>
+
+        <div class="search-area">
+          <label class="label" for="queryInput">Query</label>
+          <input
+            id="queryInput"
+            class="input"
+            type="text"
+            placeholder="e.g., API auth, password reset, incident response..."
+            autocomplete="off"
+          />
+
+          <div class="row">
+            <div class="field">
+              <label class="label" for="topK">Top-K</label>
+              <select id="topK" class="select">
+                <option value="3">3</option>
+                <option value="5" selected>5</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+              </select>
+            </div>
+
+            <div class="field grow">
+              <label class="label">Quick examples</label>
+              <div class="chips">
+                <button class="chip" type="button" onclick="fillQuery('API auth')">API auth</button>
+                <button class="chip" type="button" onclick="fillQuery('password reset')">password reset</button>
+                <button class="chip" type="button" onclick="fillQuery('security audit')">security audit</button>
+                <button class="chip" type="button" onclick="fillQuery('logging best practices')">logging</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="thresholds">
+            <div class="threshold-title">Grouping thresholds (distance)</div>
+            <div class="threshold-grid">
+              <div class="threshold-item">
+                <span class="legend-dot good"></span>
+                <span><b>Closely matched</b> ≤ <span id="tHigh">0.90</span></span>
+              </div>
+              <div class="threshold-item">
+                <span class="legend-dot warn"></span>
+                <span><b>Moderately relevant</b> ≤ <span id="tMed">1.20</span></span>
+              </div>
+              <div class="threshold-item">
+                <span class="legend-dot gray"></span>
+                <span><b>Loosely related</b> &gt; <span id="tMed2">1.20</span></span>
+              </div>
+            </div>
+
+            <div class="sliders">
+              <div class="slider-item">
+                <label class="label" for="highThresh">High relevance</label>
+                <input id="highThresh" type="range" min="0.40" max="1.50" step="0.01" value="0.90" />
+              </div>
+              <div class="slider-item">
+                <label class="label" for="medThresh">Medium relevance</label>
+                <input id="medThresh" type="range" min="0.50" max="2.00" step="0.01" value="1.20" />
+              </div>
+            </div>
+
+            <div class="helper">
+              Tip: Lower distance means higher similarity. Adjust thresholds to match your dataset.
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-primary" id="searchButton" type="button" onclick="performSearch()">
+              Search
+            </button>
+            <button class="btn btn-ghost" type="button" onclick="clearQuery()">Clear</button>
+          </div>
+
+          <div class="helper">
+            Press <b>Enter</b> to search. This UI calls <code>/search</code> and <code>/health</code>.
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Results -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Results</div>
+            <div class="card-right-hint">Top-ranked matches grouped by relevance</div>
+          </div>
+          <button class="btn btn-ghost" type="button" onclick="clearResults()">Clear Results</button>
+        </div>
+
+        <div id="results" class="results">
+          <div class="empty">
+            <div class="empty-icon">🔎</div>
+            <div class="empty-title">No search yet</div>
+            <div class="empty-text">Run a query to see results grouped into relevance planes.</div>
+          </div>
+        </div>
+
+        <div class="notes">
+          <div class="notes-title">Notes</div>
+          <ul>
+            <li>POST <code>/search</code> with <code>{ "query": "...", "n_results": 5 }</code></li>
+            <li>GET <code>/health</code> shows readiness and indexed document count</li>
+            <li>Results are grouped using distance thresholds</li>
+          </ul>
+          <div class="footerline">© 2026 • Built for ARIN 5360</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // --- Elements
+    const queryInput = document.getElementById("queryInput");
+    const resultsDiv = document.getElementById("results");
+    const searchButton = document.getElementById("searchButton");
+    const topK = document.getElementById("topK");
+
+    const highThreshEl = document.getElementById("highThresh");
+    const medThreshEl = document.getElementById("medThresh");
+
+    const tHigh = document.getElementById("tHigh");
+    const tMed = document.getElementById("tMed");
+    const tMed2 = document.getElementById("tMed2");
+
+    // Keep last search so sliders can re-render
+    let lastQuery = null;
+    let lastResults = null;
+
+    // Display API origin
+    document.getElementById("apiBase").textContent = window.location.origin;
+
+    // --- Helpers
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    async function safeReadJson(response) {
+      const text = await response.text();
+      try {
+        return { ok: response.ok, data: JSON.parse(text) };
+      } catch {
+        return { ok: response.ok, data: { detail: text || "Unknown server response" } };
+      }
+    }
+
+    function setSearching(isSearching) {
+      searchButton.disabled = isSearching;
+      queryInput.disabled = isSearching;
+      topK.disabled = isSearching;
+      highThreshEl.disabled = isSearching;
+      medThreshEl.disabled = isSearching;
+      searchButton.textContent = isSearching ? "Searching..." : "Search";
+    }
+
+    function fillQuery(text) {
+      queryInput.value = text;
+      queryInput.focus();
+    }
+
+    function clearQuery() {
+      queryInput.value = "";
+      queryInput.focus();
+    }
+
+    function clearResults() {
+      lastQuery = null;
+      lastResults = null;
+      resultsDiv.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">🧾</div>
+          <div class="empty-title">Results cleared</div>
+          <div class="empty-text">Run another query to populate results.</div>
+        </div>
+      `;
+    }
+
+    // --- Health pill
+    function setStatus(kind, text, docs) {
+      const pill = document.getElementById("statusPill");
+      const dot = document.getElementById("statusDot");
+      const label = document.getElementById("statusText");
+      const docsPill = document.getElementById("docsPill");
+
+      pill.classList.remove("ok", "bad", "unknown");
+      dot.classList.remove("ok", "bad", "unknown");
+
+      pill.classList.add(kind);
+      dot.classList.add(kind);
+
+      label.textContent = text;
+      docsPill.textContent = `Docs: ${docs ?? "—"}`;
+    }
+
+    async function refreshHealth() {
+      setStatus("unknown", "Checking…", "—");
+      try {
+        const response = await fetch("/health");
+        const { ok, data } = await safeReadJson(response);
+
+        if (!ok) {
+          setStatus("bad", "Offline", "—");
+          return;
+        }
+
+        const status = String(data.status ?? "OK");
+        const docs = data.documents_indexed ?? 0;
+        const norm = status.toLowerCase();
+        const good = norm.includes("healthy") || norm.includes("ok") || norm.includes("up");
+
+        setStatus(good ? "ok" : "unknown", status, docs);
+      } catch {
+        setStatus("bad", "Offline", "—");
+      }
+    }
+
+    // --- Rendering
+    function renderSkeleton() {
+      resultsDiv.innerHTML = `
+        <div class="skeleton">
+          <div class="sk-line"></div>
+          <div class="sk-card"></div>
+          <div class="sk-card"></div>
+          <div class="sk-card"></div>
+        </div>
+      `;
+    }
+
+    function renderMessage(type, title, body) {
+      resultsDiv.innerHTML = `
+        <div class="msg ${type}">
+          <div class="msg-title">${escapeHtml(title)}</div>
+          <div class="msg-body">${escapeHtml(body)}</div>
+        </div>
+      `;
+    }
+
+    function copyText(text) {
+      try { navigator.clipboard.writeText(text); } catch { /* ignore */ }
+    }
+
+    function renderSection(title, items, level, thresholdText) {
+      let section = `
+        <div class="section ${level}">
+          <div class="section-header">
+            <div class="section-title">${title}</div>
+            <div class="section-meta">${thresholdText}</div>
+          </div>
+          <div class="result-list">
+      `;
+
+      items.forEach((r, idx) => {
+        const id = escapeHtml(r.id ?? `doc-${idx + 1}`);
+        const text = escapeHtml(r.text ?? "");
+        const dist = typeof r.distance === "number" ? r.distance.toFixed(3) : "—";
+
+        section += `
+          <div class="result ${level}">
+            <div class="result-top">
+              <div class="left">
+                <span class="rank">#${idx + 1}</span>
+                <span class="docid">${id}</span>
+              </div>
+              <div class="right">
+                <span class="score">distance ${dist}</span>
+                <button class="copy" type="button" onclick="copyText(${JSON.stringify(r.text ?? "")})">Copy</button>
+              </div>
+            </div>
+            <div class="snippet">${text}</div>
+          </div>
+        `;
+      });
+
+      section += `</div></div>`;
+      return section;
+    }
+
+    function renderGroupedResults(query, results) {
+      const highT = Number(highThreshEl.value);
+      const medT = Number(medThreshEl.value);
+
+      // ensure ordering makes sense
+      const highThresh = Math.min(highT, medT);
+      const medThresh = Math.max(highT, medT);
+
+      tHigh.textContent = highThresh.toFixed(2);
+      tMed.textContent = medThresh.toFixed(2);
+      tMed2.textContent = medThresh.toFixed(2);
+
+      const high = [];
+      const medium = [];
+      const low = [];
+
+      results.forEach(r => {
+        const d = typeof r.distance === "number" ? r.distance : 999;
+        if (d <= highThresh) high.push(r);
+        else if (d <= medThresh) medium.push(r);
+        else low.push(r);
+      });
+
+      // If user asked for TopK, the server already limited it — keep the same order.
+      // But rank should be per-plane as requested.
+      let html = `
+        <div class="results-head">
+          <div class="results-title">Results for “${escapeHtml(query)}”</div>
+          <div class="results-sub">Grouped into relevance planes using distance thresholds</div>
+        </div>
+      `;
+
+      if (high.length) {
+        html += renderSection(
+          "🟢 Closely matched",
+          high,
+          "high",
+          `distance ≤ ${highThresh.toFixed(2)}`
+        );
+      }
+
+      if (medium.length) {
+        html += renderSection(
+          "🟡 Moderately relevant",
+          medium,
+          "medium",
+          `${highThresh.toFixed(2)} < distance ≤ ${medThresh.toFixed(2)}`
+        );
+      }
+
+      if (low.length) {
+        html += renderSection(
+          "⚪ Loosely related",
+          low,
+          "low",
+          `distance > ${medThresh.toFixed(2)}`
+        );
+      }
+
+      if (!high.length && !medium.length && !low.length) {
+        html += `
+          <div class="empty">
+            <div class="empty-title">No results</div>
+            <div class="empty-text">Try a different query.</div>
+          </div>
+        `;
+      }
+
+      resultsDiv.innerHTML = html;
+    }
+
+    // --- Search
     async function performSearch() {
-        const query = document.getElementById('queryInput').value;
-        const resultsDiv = document.getElementById('results');
+      const query = queryInput.value;
 
-        if (!query.trim()) {
-            resultsDiv.innerHTML = '<p class="error">Please enter a search query</p>';
-            return;
+      if (!query.trim()) {
+        renderMessage("warn", "Missing query", "Please enter a search query.");
+        return;
+      }
+
+      setSearching(true);
+      renderSkeleton();
+
+      try {
+        const response = await fetch("/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query, n_results: Number(topK.value) })
+        });
+
+        const { ok, data } = await safeReadJson(response);
+
+        if (!ok) {
+          renderMessage("error", "Search error", data.detail ?? "Request failed");
+          return;
         }
 
-        resultsDiv.innerHTML = '<p class="loading">Searching...</p>';
-
-        try {
-            const response = await fetch('http://localhost:8000/search', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({query: query, n_results: 5})
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                resultsDiv.innerHTML = `<p class="error">Error: ${data.detail}</p>`;
-                return;
-            }
-
-            if (data.results.length === 0) {
-                resultsDiv.innerHTML = '<p class="no-results">No results found</p>';
-                return;
-            }
-
-            let html = `<h2>Results for "${data.query}"</h2>`;
-            html += '<div class="results-list">';
-
-            data.results.forEach((result, idx) => {
-                html += `
-                    <div class="result-item">
-                        <div class="result-header">
-                            <span class="result-rank">#${idx + 1}</span>
-                            <span class="result-id">${result.id}</span>
-<!--                            <span class="result-score">Score: ${result.distance.toFixed(3)}</span>-->
-                        </div>
-                        <div class="result-text">${result.text}</div>
-                    </div>
-                `;
-            });
-
-            html += '</div>';
-            resultsDiv.innerHTML = html;
-
-        } catch (error) {
-            resultsDiv.innerHTML = `<p class="error">Failed to connect to server</p>`;
+        const results = Array.isArray(data.results) ? data.results : [];
+        if (results.length === 0) {
+          renderMessage("warn", "No results", "Try fewer words or different phrasing.");
+          return;
         }
+
+        lastQuery = data.query ?? query;
+        lastResults = results;
+
+        renderGroupedResults(lastQuery, lastResults);
+      } catch (e) {
+        renderMessage("error", "Connection failed", "Could not reach /search endpoint.");
+      } finally {
+        setSearching(false);
+      }
     }
 
-    // Get health status from the server and show it in the health-status div
-    async function displayHealth() {
-        try {
-            const result = document.getElementById('health-status');
-            result.innerHTML = `<p>Hmm...let me see</p>`;
-            const response = await fetch('http://localhost:8000/health');
-            const data = await response.json();
-            result.innerHTML = `
-                <p>${data.status} - ${data.documents_indexed} documents indexed</p>
-                <p>${data.message}</p>
-            `;
-        } catch (error) {
-            document.getElementById('health-status').textContent = 'Error fetching health status';
-        }
+    // --- Slider live updates (re-render last results)
+    function maybeRerender() {
+      if (lastQuery && lastResults) {
+        renderGroupedResults(lastQuery, lastResults);
+      } else {
+        // update the displayed threshold numbers even before first search
+        const highT = Math.min(Number(highThreshEl.value), Number(medThreshEl.value));
+        const medT = Math.max(Number(highThreshEl.value), Number(medThreshEl.value));
+        tHigh.textContent = highT.toFixed(2);
+        tMed.textContent = medT.toFixed(2);
+        tMed2.textContent = medT.toFixed(2);
+      }
     }
 
-    // Allow the Enter key to trigger search
-    document.getElementById('queryInput').addEventListener('keypress', function (event) {
-        if (event.key === 'Enter') {
-            performSearch();
-        }
+    highThreshEl.addEventListener("input", maybeRerender);
+    medThreshEl.addEventListener("input", maybeRerender);
+
+    // Enter key triggers search
+    queryInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") performSearch();
     });
 
-</script>
+    // Startup
+    maybeRerender();
+    refreshHealth();
+    setInterval(refreshHealth, 30000);
+  </script>
 </body>
 </html>

@@ -14,7 +14,8 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
-from starlette.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from src.retrieval.retriever import DocumentRetriever
 
@@ -155,8 +156,20 @@ async def test_error():
 
 # Mount static files LAST - catches all remaining routes
 # including / --> /static/index.html, and
-#           /stlye.css --> /static/style.css
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+#           /stlye.css --> /static/style.csscan
+app.mount("/static", StaticFiles(directory="static"), name="static")
+import os
+import os
+
+print("===== STATIC DEBUG INFO =====")
+print("CWD:", os.getcwd())
+print("static/ exists?:", os.path.exists("static"))
+print("static/style.css exists?:", os.path.exists("static/style.css"))
+print("=============================")
+
+@app.get("/")
+async def ui():
+    return FileResponse("static/index.html")
 
 if __name__ == "__main__":
     print("To run this application:")

@@ -30,6 +30,19 @@ def loader() -> DocumentLoader:
     return DocumentLoader()
 
 
+def test_loader_loads_documents(tmp_path):
+    """Test loading documents from a directory."""
+    # create some test files
+    (tmp_path / "file1.txt").write_text("This is a test file")
+    (tmp_path / "file2.txt").write_text("This is another test file")
+
+    loader = DocumentLoader()
+    docs = loader.load_documents(str(tmp_path))
+
+    assert len(docs) == 2
+    assert all("id" in doc and "text" in doc and "metadata" in doc for doc in docs)
+
+
 def _write_file(path: Path, content: str, encoding: str = "utf-8") -> None:
     """
     Helper to create a text file with given content.

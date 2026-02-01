@@ -91,6 +91,6 @@ Place .txt files in the `documents/` directory and restart the server. Documents
 
 # Screenshot
 
-![API_Web_Interface](image.png)
+![API_Web_Interface](image2.png)
 
 # Video Links:

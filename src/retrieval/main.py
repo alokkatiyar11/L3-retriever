@@ -159,6 +159,7 @@ async def test_error():
 #           /stlye.css --> /static/style.csscan
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+
 @app.get("/")
 async def ui():
     return FileResponse("static/index.html")

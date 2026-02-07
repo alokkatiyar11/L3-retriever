@@ -13,6 +13,8 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+import pypdf
+
 logger = logging.getLogger(__name__)
 
 
@@ -87,6 +89,12 @@ class DocumentLoader:
             docs = self._load_text_file(filepath)
             documents.extend(docs)
 
+        # load PDF files
+        for filepath in path.glob("*.pdf"):
+            logger.info(f"Loading document: {filepath}")
+            docs = self._load_pdf_file(filepath)
+            documents.extend(docs)
+
         return documents
 
     def _load_text_file(self, filepath: Path) -> list[dict]:
@@ -111,6 +119,39 @@ class DocumentLoader:
 
             # No chunking
             return [{"id": doc_id, "text": text, "metadata": metadata}]
+
+        except Exception as e:
+            logger.warning(f"Warning: Failed to load {filepath}: {e}")
+            return []
+
+    def _load_pdf_file(self, filepath: Path) -> list[dict]:
+        """Load a single PDF file."""
+        try:
+            reader = pypdf.PdfReader(str(filepath))
+
+            # Extract text from all pages
+            text_parts = []
+            for page in reader.pages:
+                text_parts.append(page.extract_text() or "")
+
+            text = "\n\n".join(text_parts).strip()
+
+            if not text:
+                return []
+
+            doc_id = filepath.stem
+            metadata = {"filename": filepath.name, "type": "pdf", "num_pages": len(reader.pages)}
+
+            # Chunk if chunker exists
+            if self.chunker:
+                chunks = self.chunker.chunk_text(text, doc_id)
+                # Add pdf metadata to each chunk's metadata
+                for chunk in chunks:
+                    chunk["metadata"].update(metadata)
+                return chunks
+            else:
+                # No chunking
+                return [{"id": doc_id, "text": text, "metadata": metadata}]
 
         except Exception as e:
             logger.warning(f"Warning: Failed to load {filepath}: {e}")

@@ -1,24 +1,15 @@
-"""
-Document retrieval system.
-
-@author:  Aarti Dashore, Alok Katiyar
-Seattle University, ARIN 5360
-@see: https://catalog.seattleu.edu/preview_course_nopop.php?catoid=55&coid
-=190380
-@version: 1.0.0+w26
-"""
-
-from src.retrieval.embeddings import DocumentEmbedder
-from src.retrieval.loader import DocumentLoader
-from src.retrieval.store import VectorStore
+from retrieval.embeddings import DocumentEmbedder
+from retrieval.loader import DocumentChunker, DocumentLoader
+from retrieval.store import VectorStore
 
 
 class DocumentRetriever:
     """High-level interface for document retrieval."""
 
-    def __init__(self):
+    def __init__(self, chunk_size: int = 300, overlap: int = 30):
         """Initialize retriever with default components."""
-        self.loader = DocumentLoader()
+        chunker = DocumentChunker(chunk_size=chunk_size, overlap=overlap)
+        self.loader = DocumentLoader(chunker=chunker)
         self.store = VectorStore(DocumentEmbedder())
         self._indexed = False  # flag to indicate we've done some indexing
 
@@ -32,7 +23,6 @@ class DocumentRetriever:
         Returns:
             Number of documents indexed
         """
-        #  use our components to load and add documents
         before = self.document_count
         documents = self.loader.load_documents(directory)
         self.store.add_documents(documents)
@@ -40,23 +30,11 @@ class DocumentRetriever:
         return self.document_count - before
 
     def search(self, query: str, n_results: int = 5) -> list[dict]:
-        """
-        Search for documents relevant to the query.
-
-        Args:
-            query: Search query text
-            n_results: Number of results to return
-
-        Returns:
-            List of result dicts with document information
-        """
-        #  use our vector store to query
+        """Search for documents relevant to the query."""
         if not self._indexed:
             raise ValueError("No documents indexed. Call index_documents() first.")
-
         return self.store.search(query, n_results)
 
-    #  define a propoerty that fetches the number of indexed documents
     @property
     def document_count(self) -> int:
         """Return the number of indexed documents."""

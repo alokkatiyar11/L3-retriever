@@ -18,11 +18,12 @@ These tests validate that DocumentLoader.load_documents:
 
 from __future__ import annotations
 
+import builtins
 from pathlib import Path
 
 import pytest
 
-from src.retrieval.loader import DocumentLoader
+from retrieval.loader import DocumentLoader
 
 
 @pytest.fixture
@@ -153,3 +154,29 @@ def test_raises_not_a_directory_error(tmp_path, loader):
     # Attempt to load documents using the file path
     with pytest.raises(NotADirectoryError):
         loader.load_documents(str(file_path))
+
+
+def test_load_text_file_handles_open_error(monkeypatch, tmp_path: Path, caplog):
+    """
+    Force _load_text_file() into its exception handler to cover loader.py's except block.
+    """
+    from retrieval.loader import DocumentLoader
+
+    loader = DocumentLoader()
+    bad_file = tmp_path / "broken.txt"
+    bad_file.write_text("hello", encoding="utf-8")
+
+    real_open = builtins.open
+
+    def fake_open(*args, **kwargs):
+        # Only break on our target file
+        if args and str(args[0]) == str(bad_file):
+            raise OSError("boom")
+        return real_open(*args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", fake_open)
+
+    # Call the private method directly to deterministically hit the except block.
+    docs = loader._load_text_file(bad_file)
+
+    assert docs == []

@@ -1,5 +1,6 @@
 """
-Lab 3 FastAPI API.
+Unit tests for DocumentLoader.
+
 @author: Aarti Dashore, Alok Katiyar
 Seattle University, ARIN 5360
 @see: https://catalog.seattleu.edu/preview_course_nopop.php?catoid=55&coid
@@ -7,43 +8,12 @@ Seattle University, ARIN 5360
 @version: 0.1.0+w26
 """
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
-
-
-class DocumentLoader:
-    """
-    Docstring for DocumentLoader
-    Load all the text document from the directory
-    Args:
-        directory (str): The path to the directory containing text files.
-    Returns:
-        list[dict]: A list of dictionaries, each containing 'id', 'text', and 'metadata'.
-
-    Raises:
-        FileNotFoundError: If directory does not exist.
-        NotADirectoryError: If path exists but is not a directory.
-    """
-
-    def load_documents(self, directory: str) -> list[dict]:
-        documents = []
-        path = Path(directory)
-
-        if not path.exists():
-            raise FileNotFoundError(f"Directory not found: {directory}")
-        if not path.is_dir():
-            raise NotADirectoryError(f"Not a directory: {directory}")
-
-        for filepath in path.glob("*.txt"):
-            with open(filepath, "r", encoding="utf-8") as f:
-                text = f.read().strip()
-            if text:
-                documents.append(
-                    {"id": filepath.stem, "text": text, "metadata": {"filename": filepath.name}}
-                )
-        return documents
 
 
 class DocumentChunker:
@@ -62,34 +32,29 @@ class DocumentChunker:
 
     def chunk_text(self, text: str, doc_id: str) -> list[dict]:
         """Split the given text into overlapping chunks."""
-        words = text.split()  # pull out words from text
+        words = text.split()
 
         if len(words) <= self.chunk_size:
             return [
                 {
                     "id": f"{doc_id}_0",
                     "text": text,
-                    "metadata": {
-                        "chunk": 0,
-                        "doc_id": doc_id,
-                    },
+                    "metadata": {"chunk": 0, "doc_id": doc_id},
                 }
             ]
 
-        chunks, start, chunk_num = [], 0, 0
+        chunks: list[dict] = []
+        start, chunk_num = 0, 0
 
         while start < len(words):
             end = start + self.chunk_size
-            chunk_text = " ".join(words[start:end])
+            chunk = " ".join(words[start:end])
 
             chunks.append(
                 {
                     "id": f"{doc_id}_{chunk_num}",
-                    "text": chunk_text,
-                    "metadata": {
-                        "chunk": chunk_num,
-                        "doc_id": doc_id,
-                    },
+                    "text": chunk,
+                    "metadata": {"chunk": chunk_num, "doc_id": doc_id},
                 }
             )
 
@@ -97,3 +62,56 @@ class DocumentChunker:
             chunk_num += 1
 
         return chunks
+
+
+class DocumentLoader:
+    """Load and parse documents from the file system."""
+
+    def __init__(self, chunker: DocumentChunker | None = None):
+        """Initialize loader with optional chunker."""
+        self.chunker = chunker
+
+    def load_documents(self, directory: str) -> list[dict]:
+        """Load all text documents from a directory."""
+        documents: list[dict] = []
+        path = Path(directory)
+
+        if not path.exists():
+            raise FileNotFoundError(f"Directory not found: {directory}")
+        if not path.is_dir():
+            raise NotADirectoryError(f"Not a directory: {directory}")
+
+        # load text files
+        for filepath in path.glob("*.txt"):
+            logger.info(f"Loading document: {filepath}")
+            docs = self._load_text_file(filepath)
+            documents.extend(docs)
+
+        return documents
+
+    def _load_text_file(self, filepath: Path) -> list[dict]:
+        """Load a single text file."""
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                text = f.read().strip()
+
+            if not text:
+                return []
+
+            doc_id = filepath.stem
+            metadata = {"filename": filepath.name, "type": "txt"}
+
+            # Chunk if chunker exists
+            if self.chunker:
+                chunks = self.chunker.chunk_text(text, doc_id)
+                # Add filename/type to each chunk's metadata
+                for chunk in chunks:
+                    chunk["metadata"].update(metadata)
+                return chunks
+
+            # No chunking
+            return [{"id": doc_id, "text": text, "metadata": metadata}]
+
+        except Exception as e:
+            logger.warning(f"Warning: Failed to load {filepath}: {e}")
+            return []

@@ -2,6 +2,10 @@
 
 Semantic search system using ChromaDB and sentence transformers for ARIN 5360.
 
+
+Output:
+![search_results_from_dracula_text_file](q5.png)
+
 ## Quick Start
 
 ```bash

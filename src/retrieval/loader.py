@@ -44,3 +44,56 @@ class DocumentLoader:
                     {"id": filepath.stem, "text": text, "metadata": {"filename": filepath.name}}
                 )
         return documents
+
+
+class DocumentChunker:
+    """Chunk documents into smaller pieces for better retrieval."""
+
+    def __init__(self, chunk_size: int = 300, overlap: int = 30):
+        if chunk_size <= 0:
+            raise ValueError("chunk_size must be > 0")
+        if overlap < 0:
+            raise ValueError("overlap must be >= 0")
+        if overlap >= chunk_size:
+            raise ValueError("overlap must be < chunk_size")
+
+        self.chunk_size = chunk_size
+        self.overlap = overlap
+
+    def chunk_text(self, text: str, doc_id: str) -> list[dict]:
+        """Split the given text into overlapping chunks."""
+        words = text.split()  # pull out words from text
+
+        if len(words) <= self.chunk_size:
+            return [
+                {
+                    "id": f"{doc_id}_0",
+                    "text": text,
+                    "metadata": {
+                        "chunk": 0,
+                        "doc_id": doc_id,
+                    },
+                }
+            ]
+
+        chunks, start, chunk_num = [], 0, 0
+
+        while start < len(words):
+            end = start + self.chunk_size
+            chunk_text = " ".join(words[start:end])
+
+            chunks.append(
+                {
+                    "id": f"{doc_id}_{chunk_num}",
+                    "text": chunk_text,
+                    "metadata": {
+                        "chunk": chunk_num,
+                        "doc_id": doc_id,
+                    },
+                }
+            )
+
+            start = end - self.overlap
+            chunk_num += 1
+
+        return chunks

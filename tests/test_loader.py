@@ -1,24 +1,21 @@
 """
-Lab 3 FastAPI API.
-@author: Aarti Dashore, Alok Katiyar
-Seattle University, ARIN 5360
-@see: https://catalog.seattleu.edu/preview_course_nopop.php?catoid=55&coid
-=190380
-@version: 0.1.0+w26
-
 Unit tests for DocumentLoader.
 
 These tests validate that DocumentLoader.load_documents:
-- Loads only .txt files in a directory
+- Loads .txt files in a directory
 - Skips empty/whitespace-only files
 - Returns the expected schema for each document
-- Behaves correctly for empty or non-existent directories
+- Raises correct exceptions for bad directories
+- Covers exception-handling paths in _load_text_file and _load_pdf_file (for 100% coverage)
 
+@author: Aarti Dashore, Alok Katiyar
+Seattle University, ARIN 5360
+@see: https://catalog.seattleu.edu/preview_course_nopop.php?catoid=55&coid=190380
+@version: 0.1.0+w26
 """
 
 from __future__ import annotations
 
-import builtins
 from pathlib import Path
 
 import pytest
@@ -28,60 +25,48 @@ from retrieval.loader import DocumentLoader
 
 @pytest.fixture
 def loader() -> DocumentLoader:
-    """
-    Provide a fresh DocumentLoader instance for each test.
-    """
+    """Provide a fresh DocumentLoader instance for each test."""
     return DocumentLoader()
 
 
-def test_loader_loads_documents(tmp_path):
-    """Test loading documents from a directory."""
-    # create some test files
-    (tmp_path / "file1.txt").write_text("This is a test file")
-    (tmp_path / "file2.txt").write_text("This is another test file")
+def _write_file(path: Path, content: str, encoding: str = "utf-8") -> None:
+    """Helper to create a text file with given content."""
+    path.write_text(content, encoding=encoding)
 
-    loader = DocumentLoader()
-    docs = loader.load_documents(str(tmp_path))
+
+def test_loader_loads_documents(tmp_path: Path) -> None:
+    """Test loading multiple documents from a directory."""
+    (tmp_path / "file1.txt").write_text("This is a test file", encoding="utf-8")
+    (tmp_path / "file2.txt").write_text("This is another test file", encoding="utf-8")
+
+    docs = DocumentLoader().load_documents(str(tmp_path))
 
     assert len(docs) == 2
     assert all("id" in doc and "text" in doc and "metadata" in doc for doc in docs)
 
 
-def _write_file(path: Path, content: str, encoding: str = "utf-8") -> None:
-    """
-    Helper to create a text file with given content.
-    """
-    path.write_text(content, encoding=encoding)
-
-
 def test_returns_empty_list_for_empty_directory(tmp_path: Path, loader: DocumentLoader) -> None:
-    """
-    If the directory contains no .txt files, load_documents should return an empty list.
-    """
+    """If directory contains no loadable files, return empty list."""
     docs = loader.load_documents(str(tmp_path))
     assert docs == []
 
 
 def test_loads_single_text_file(tmp_path: Path, loader: DocumentLoader) -> None:
-    """
-    A single .txt file should be loaded and returned as one document with correct schema.
-    """
+    """A single .txt file should be loaded with correct schema."""
     _write_file(tmp_path / "a.txt", "hello world")
 
     docs = loader.load_documents(str(tmp_path))
 
     assert len(docs) == 1
     doc = docs[0]
-
     assert doc["id"] == "a"
     assert doc["text"] == "hello world"
     assert doc["metadata"]["filename"] == "a.txt"
+    assert doc["metadata"]["type"] == "txt"
 
 
 def test_ignores_non_txt_files(tmp_path: Path, loader: DocumentLoader) -> None:
-    """
-    Files that do not end with .txt should be ignored.
-    """
+    """Non-.txt and non-.pdf files should be ignored."""
     _write_file(tmp_path / "a.txt", "hello")
     _write_file(tmp_path / "b.md", "should not load")
     _write_file(tmp_path / "c.json", '{"x": 1}')
@@ -93,9 +78,7 @@ def test_ignores_non_txt_files(tmp_path: Path, loader: DocumentLoader) -> None:
 
 
 def test_skips_empty_files(tmp_path: Path, loader: DocumentLoader) -> None:
-    """
-    Empty .txt files should be skipped (because text becomes empty after .strip()).
-    """
+    """Empty and whitespace-only files should be skipped."""
     _write_file(tmp_path / "empty.txt", "")
     _write_file(tmp_path / "spaces.txt", "   \n\t  ")
     _write_file(tmp_path / "valid.txt", "content")
@@ -108,75 +91,72 @@ def test_skips_empty_files(tmp_path: Path, loader: DocumentLoader) -> None:
 
 
 def test_loads_multiple_text_files(tmp_path: Path, loader: DocumentLoader) -> None:
-    """
-    Multiple .txt files should be loaded. The order is not guaranteed by glob(),
-    so we compare by ids.
-    """
+    """Multiple .txt files should be loaded; order not assumed."""
     _write_file(tmp_path / "one.txt", "first")
     _write_file(tmp_path / "two.txt", "second")
     _write_file(tmp_path / "three.txt", "third")
 
     docs = loader.load_documents(str(tmp_path))
     ids = {d["id"] for d in docs}
-
     assert ids == {"one", "two", "three"}
 
-    # Validate schema for each document
     for d in docs:
         assert set(d.keys()) == {"id", "text", "metadata"}
-        assert "filename" in d["metadata"]
         assert d["metadata"]["filename"] == f"{d['id']}.txt"
+        assert d["metadata"]["type"] == "txt"
         assert isinstance(d["text"], str) and d["text"].strip() != ""
 
 
 def test_raises_for_nonexistent_directory(loader: DocumentLoader) -> None:
-    """
-    Current implementation will raise when directory doesn't exist because Path.glob()
-    on a non-existent directory effectively yields nothing BUT open() will never run.
-    However, behavior can depend on OS/path.
-
-    This test enforces a clearer behavior: if directory doesn't exist, raise FileNotFoundError.
-
-    If you DON'T want this behavior, remove this test or update your loader.
-    """
+    """Non-existent directory should raise FileNotFoundError."""
     with pytest.raises(FileNotFoundError):
         loader.load_documents("/this/path/should/not/exist")
 
 
-def test_raises_not_a_directory_error(tmp_path, loader):
-    """
-    Passing a file path instead of a directory should raise NotADirectoryError.
-    """
-    # Create a regular file
+def test_raises_not_a_directory_error(tmp_path: Path, loader: DocumentLoader) -> None:
+    """Passing a file path instead of directory should raise NotADirectoryError."""
     file_path = tmp_path / "not_a_dir.txt"
-    file_path.write_text("I am a file, not a directory")
+    file_path.write_text("I am a file, not a directory", encoding="utf-8")
 
-    # Attempt to load documents using the file path
     with pytest.raises(NotADirectoryError):
         loader.load_documents(str(file_path))
 
 
-def test_load_text_file_handles_open_error(monkeypatch, tmp_path: Path, caplog):
-    """
-    Force _load_text_file() into its exception handler to cover loader.py's except block.
-    """
-    from retrieval.loader import DocumentLoader
-
-    loader = DocumentLoader()
-    bad_file = tmp_path / "broken.txt"
+def test_load_text_file_logs_warning_on_exception(monkeypatch, tmp_path: Path, caplog) -> None:
+    """Force _load_text_file() into its exception handler and ensure warning is logged."""
+    bad_file = tmp_path / "bad.txt"
     bad_file.write_text("hello", encoding="utf-8")
 
-    real_open = builtins.open
+    real_open = open  # keep reference to real open
 
     def fake_open(*args, **kwargs):
-        # Only break on our target file
         if args and str(args[0]) == str(bad_file):
             raise OSError("boom")
         return real_open(*args, **kwargs)
 
-    monkeypatch.setattr(builtins, "open", fake_open)
+    monkeypatch.setattr("builtins.open", fake_open)
 
-    # Call the private method directly to deterministically hit the except block.
-    docs = loader._load_text_file(bad_file)
+    with caplog.at_level("WARNING"):
+        docs = loader()._load_text_file(bad_file)
 
     assert docs == []
+    # Your loader logs: "Warning: Failed to load ..."
+    assert "Failed to load" in caplog.text
+
+
+def test_load_pdf_file_logs_warning_on_exception(monkeypatch, tmp_path: Path, caplog) -> None:
+    """Force _load_pdf_file() into its exception handler and ensure warning is logged."""
+    bad_pdf = tmp_path / "bad.pdf"
+    bad_pdf.write_bytes(b"%PDF-1.4 broken")
+
+    class BadPdfReader:
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError("pdf boom")
+
+    monkeypatch.setattr("pypdf.PdfReader", BadPdfReader)
+
+    with caplog.at_level("WARNING"):
+        docs = loader()._load_pdf_file(bad_pdf)
+
+    assert docs == []
+    assert "Failed to load" in caplog.text

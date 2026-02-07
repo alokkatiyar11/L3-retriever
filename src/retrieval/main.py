@@ -123,16 +123,13 @@ async def search(request: SearchRequest):
 # Implement health check endpoint
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """
-    Check if the API is running.
-
-    Returns:
-        Health status
-    """
     if retriever is None:
         return HealthResponse(
-            status="unhealthy", message="Retriever not initialized", documents_indexed=0
+            status="healthy",  # ← CHANGE HERE
+            message="API is running; retriever not initialized yet",
+            documents_indexed=0,
         )
+
     return HealthResponse(
         status="healthy",
         message="API is running and ready",

@@ -1,6 +1,12 @@
 """
 Unit tests for DocumentLoader.
 
+@author:  Aarti Dashore, Alok Katiyar
+Seattle University, ARIN 5360
+@see: https://catalog.seattleu.edu/preview_course_nopop.php?catoid=55&coid
+=190380
+@version: 1.0.0+w26
+
 These tests validate that DocumentLoader.load_documents:
 - Loads .txt files in a directory
 - Skips empty/whitespace-only files
@@ -8,10 +14,6 @@ These tests validate that DocumentLoader.load_documents:
 - Raises correct exceptions for bad directories
 - Covers exception-handling paths in _load_text_file and _load_pdf_file (for 100% coverage)
 
-@author: Aarti Dashore, Alok Katiyar
-Seattle University, ARIN 5360
-@see: https://catalog.seattleu.edu/preview_course_nopop.php?catoid=55&coid=190380
-@version: 0.1.0+w26
 """
 
 from __future__ import annotations
@@ -122,7 +124,9 @@ def test_raises_not_a_directory_error(tmp_path: Path, loader: DocumentLoader) ->
         loader.load_documents(str(file_path))
 
 
-def test_load_text_file_logs_warning_on_exception(monkeypatch, tmp_path: Path, caplog) -> None:
+def test_load_text_file_logs_warning_on_exception(
+    monkeypatch, tmp_path: Path, caplog, loader: DocumentLoader
+) -> None:
     """Force _load_text_file() into its exception handler and ensure warning is logged."""
     bad_file = tmp_path / "bad.txt"
     bad_file.write_text("hello", encoding="utf-8")
@@ -137,14 +141,15 @@ def test_load_text_file_logs_warning_on_exception(monkeypatch, tmp_path: Path, c
     monkeypatch.setattr("builtins.open", fake_open)
 
     with caplog.at_level("WARNING"):
-        docs = loader()._load_text_file(bad_file)
+        docs = loader._load_text_file(bad_file)
 
     assert docs == []
-    # Your loader logs: "Warning: Failed to load ..."
     assert "Failed to load" in caplog.text
 
 
-def test_load_pdf_file_logs_warning_on_exception(monkeypatch, tmp_path: Path, caplog) -> None:
+def test_load_pdf_file_logs_warning_on_exception(
+    monkeypatch, tmp_path: Path, caplog, loader: DocumentLoader
+) -> None:
     """Force _load_pdf_file() into its exception handler and ensure warning is logged."""
     bad_pdf = tmp_path / "bad.pdf"
     bad_pdf.write_bytes(b"%PDF-1.4 broken")
@@ -156,7 +161,7 @@ def test_load_pdf_file_logs_warning_on_exception(monkeypatch, tmp_path: Path, ca
     monkeypatch.setattr("pypdf.PdfReader", BadPdfReader)
 
     with caplog.at_level("WARNING"):
-        docs = loader()._load_pdf_file(bad_pdf)
+        docs = loader._load_pdf_file(bad_pdf)
 
     assert docs == []
     assert "Failed to load" in caplog.text

@@ -170,3 +170,4 @@ Lab3 Retrieval:
 https://youtu.be/mrfsLGAVN8o
 
 Lab4: Chunking:
+https://youtu.be/BoKSugwwzys

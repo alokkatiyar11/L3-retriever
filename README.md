@@ -1,10 +1,18 @@
-# Lab 3: Document Retrieval System
+# Lab 4: Document Retrieval System
 
 Semantic search system using ChromaDB and sentence transformers for ARIN 5360.
 
+This project implements a document retrieval system that uses vector embeddings and semantic search to find relevant information across text and PDF documents. The system automatically chunks large documents into smaller, overlapping segments for more precise retrieval and better search results.
 
-Output:
-![search_results_from_dracula_text_file](/images/q5.png)
+
+### Chunking:
+Let's have a look at what this project is intended to perform:
+
+Chunking results from dracula text file:
+![chunking_results_from_dracula_text_file](/images/q5.png)
+
+Chunking results from MSAI pdf file:
+![chunking_results_from_msai_pdf_file](/images/q5_1.png)
 
 ## Quick Start
 
@@ -95,11 +103,17 @@ L3-retriever/
 │   ├── 28_cloud_cost_optimization.txt
 │   ├── 29_feature_flag_usage.txt
 │   ├── 30_internal_wiki_usage.txt
+│   ├── dracula_by_bram_stoker.txt
+│   ├── MSAI-courses.pdf
 │   ├── sample1.txt
 │   ├── sample2.txt
 │   ├── sample3.txt
 │   └── sample4.txt
 │
+├── images/
+│   ├── q5_1.png
+│   └── q5.png
+|
 ├── src/
 │   └── retrieval/
 │       ├── __init__.py
@@ -114,7 +128,11 @@ L3-retriever/
 │   └── style.css
 │
 ├── tests/
+│   ├── __pycache__/
+│   ├── data/
 │   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_chunking.py
 │   ├── test_embeddings.py
 │   ├── test_integration.py
 │   ├── test_loader.py
@@ -137,14 +155,19 @@ L3-retriever/
 - Store: Manages chromadb collections for similarity search
 - Retriever: Coordinates components for end-to-end retrieval
 - API: FastAPI endpoints for heath checks and search
+- Chunking: Test file for document chunking and document loader.
 
 # Adding Documents
 
-Place .txt files in the `documents/` directory and restart the server. Documents are indexed automatic startup.
+Place .txt and .pdf files in the `documents/` directory and restart the server. Documents are indexed automatic startup.
 
 # Screenshot
 
 ![API_Web_Interface](image2.png)
 
 # Video Links:
+Lab3 Retrieval:
 https://youtu.be/mrfsLGAVN8o
+
+Lab4: Chunking:
+https://youtu.be/BoKSugwwzys

@@ -1,4 +1,4 @@
-# Lab 3: Document Retrieval System
+# Lab 4: Document Retrieval System
 
 Semantic search system using ChromaDB and sentence transformers for ARIN 5360.
 
